@@ -1,11 +1,44 @@
 import { useState, useEffect } from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { auth } from './firebase'
 import { signOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
+import About from './pages/about'
 
-function App() {
-  const [error, setError] = useState('')
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser)
+      setLoading(false)
+    })
+
+    return () => unsubscribe()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 via-purple-600/20 to-blue-700/20 backdrop-blur-3xl"></div>
+        
+        <div className="relative text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur-xl rounded-full border border-white/20 mb-4">
+            <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+          </div>
+          <p className="text-xl text-white font-medium">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  return user ? children : <Navigate to="/" />
+}
+
+function LoginPage() {
+  const navigate = useNavigate()
+  const [error, setError] = useState('')
   const [showRegisterModal, setShowRegisterModal] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
@@ -18,13 +51,14 @@ function App() {
   })
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser)
-      setLoading(false)
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        navigate('/about')
+      }
     })
 
     return () => unsubscribe()
-  }, [])
+  }, [navigate])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -41,6 +75,7 @@ function App() {
         formData.email,
         formData.password
       )
+      navigate('/about')
     } catch (err) {
       setError(err.message)
     }
@@ -68,6 +103,7 @@ function App() {
       )
       setShowRegisterModal(false)
       setRegisterData({ email: '', password: '', confirmPassword: '' })
+      navigate('/about')
     } catch (err) {
       setError(err.message)
     }
@@ -85,65 +121,6 @@ function App() {
       ...registerData,
       [e.target.name]: e.target.value
     })
-  }
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth)
-    } catch (err) {
-      setError(err.message)
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 flex items-center justify-center px-4 sm:px-6 lg:px-8">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 via-purple-600/20 to-blue-700/20 backdrop-blur-3xl"></div>
-        
-        <div className="relative text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur-xl rounded-full border border-white/20 mb-4">
-            <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-          </div>
-          <p className="text-xl text-white font-medium">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-700 flex items-center justify-center px-4 sm:px-6 lg:px-8">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 via-purple-600/20 to-blue-700/20 backdrop-blur-3xl"></div>
-        
-        <div className="relative w-full max-w-md">
-          <div className="bg-white/10 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8 sm:p-10 text-center">
-            {/* Welcome Icon */}
-            <div className="mx-auto w-20 h-20 bg-gradient-to-tr from-green-400 to-blue-400 rounded-full flex items-center justify-center mb-6 shadow-lg">
-              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            
-            <h2 className="text-3xl font-bold text-white mb-4">Welcome to Whoscall</h2>
-            <div className="bg-white/10 rounded-xl p-4 mb-6 border border-white/20">
-              <p className="text-white/70 text-sm mb-1">Logged in as:</p>
-              <p className="text-white font-medium">{user.email}</p>
-            </div>
-            
-            <button
-              onClick={handleLogout}
-              className="w-full bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-white/30 shadow-lg hover:shadow-xl"
-            >
-              Logout
-            </button>
-          </div>
-          
-          {/* Decorative elements */}
-          <div className="absolute -top-4 -left-4 w-20 h-20 bg-gradient-to-r from-green-400 to-blue-400 rounded-full opacity-20 blur-xl"></div>
-          <div className="absolute -bottom-4 -right-4 w-20 h-20 bg-gradient-to-r from-pink-400 to-purple-400 rounded-full opacity-20 blur-xl"></div>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -189,15 +166,15 @@ function App() {
               </div>
             </div>
 
-            <div>
+      <div>
               <div className="flex items-center justify-between mb-2">
                 <label htmlFor="password" className="block text-sm font-medium text-white/90">
                   Password
                 </label>
                 <a href="#" className="text-sm text-white/70 hover:text-white transition-colors duration-200">
                   Forgot password?
-                </a>
-              </div>
+        </a>
+      </div>
               <div className="relative">
                 <input
                   type="password"
@@ -248,8 +225,8 @@ function App() {
               className="font-semibold text-white hover:text-white/80 transition-colors duration-200 underline underline-offset-2"
             >
               Create free account
-            </button>
-          </p>
+        </button>
+        </p>
         </div>
 
         {/* Decorative elements */}
@@ -377,6 +354,24 @@ function App() {
         </div>
       )}
     </div>
+  )
+}
+
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<LoginPage />} />
+        <Route
+          path="/about"
+          element={
+            <ProtectedRoute>
+              <About />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </Router>
   )
 }
 
