@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "959876682680",
+    "project_id": "antihorse-b7dc5",
+    "storage_bucket": "antihorse-b7dc5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:959876682680:android:YOUR_ANDROID_APP_ID",
+        "android_client_info": {
+          "package_name": "com.antihorse"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyARkWh4V_EFxavVQJFHrzFEXofV5joub_w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

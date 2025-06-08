@@ -7,16 +7,52 @@ import {
   Image, 
   Platform, 
   SafeAreaView, 
-  KeyboardAvoidingView 
+  KeyboardAvoidingView,
+  Alert 
 } from 'react-native';
+import { auth } from '../../firebase';
 
-const LoginScreen = () => {
+interface LoginScreenProps {
+  onNavigateToRegister: () => void;
+}
+
+const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToRegister }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const handleLogin = async () => {
+    if (!email.trim()) {
+      Alert.alert('Error', 'Please enter your email');
+      return;
+    }
 
-  const handleLogin = () => {
-    // TODO: Implement login logic
-    console.log('Login pressed', email, password);
+    if (!password.trim()) {
+      Alert.alert('Error', 'Please enter your password');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      await auth().signInWithEmailAndPassword(email, password);
+      Alert.alert('Success', 'Logged in successfully!');
+    } catch (error: any) {
+      console.error('Login error:', error);
+      let errorMessage = 'An error occurred during login';
+      
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No user found with this email address';
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address';
+      }
+      
+      Alert.alert('Login Failed', errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: 'white'}}>
@@ -54,13 +90,28 @@ const LoginScreen = () => {
                 <View style={{width: 16, height: 16, borderWidth: 1, borderColor: '#EF4444', borderRadius: 4, marginRight: 8, backgroundColor: '#EF4444'}} />
                 <Text style={{fontSize: 12, color: '#6B7280'}}>Remember Password</Text>
               </View>
-            </View>
-            <TouchableOpacity style={{backgroundColor: '#DC2626', borderRadius: 12, paddingVertical: 12, marginBottom: 8}} onPress={handleLogin}>
-              <Text style={{color: 'white', fontSize: 18, fontWeight: 'bold', textAlign: 'center'}}>Login</Text>
+            </View>            <TouchableOpacity 
+              style={{
+                backgroundColor: isLoading ? '#9CA3AF' : '#DC2626', 
+                borderRadius: 12, 
+                paddingVertical: 12, 
+                marginBottom: 8
+              }} 
+              onPress={handleLogin}
+              disabled={isLoading}
+            >
+              <Text style={{
+                color: 'white', 
+                fontSize: 18, 
+                fontWeight: 'bold', 
+                textAlign: 'center'
+              }}>
+                {isLoading ? 'Logging in...' : 'Login'}
+              </Text>
             </TouchableOpacity>
             <View style={{flexDirection: 'row', justifyContent: 'center', marginTop: 8}}>
               <Text style={{color: '#6B7280', fontSize: 14}}>Don't have an account? </Text>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={onNavigateToRegister}>
                 <Text style={{color: '#DC2626', fontSize: 14, fontWeight: 'bold'}}>Sign Up</Text>
               </TouchableOpacity>
             </View>
