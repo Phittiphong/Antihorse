@@ -55,16 +55,13 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ onBackToLogin }) => {
     try {
       // Create user with email and password
       const userCredential = await auth().createUserWithEmailAndPassword(email, password);
-      const user = userCredential.user;
-
-      // Update user profile with display name
+      const user = userCredential.user;      // Update user profile with display name
       await user.updateProfile({
         displayName: fullName,
       });
 
-      Alert.alert('Success', 'Account created successfully!', [
-        { text: 'OK', onPress: onBackToLogin }
-      ]);
+      console.log('Registration successful:', user.uid);
+      // ไม่ต้องแสดง Alert หรือ navigate manual เพราะ auth state listener จะจัดการ
       
     } catch (error: any) {
       console.error('Registration error:', error);
