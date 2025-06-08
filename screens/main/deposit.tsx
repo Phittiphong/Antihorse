@@ -26,18 +26,22 @@ interface AccountData {
 interface DepositScreenProps {
   onNavigateToTransfer: () => void;
   onNavigateToHistory: () => void;
+  isPinVerified: boolean;
+  setIsPinVerified: (v: boolean) => void;
+  didShowPinVerifyModal: boolean;
+  setDidShowPinVerifyModal: (v: boolean) => void;
 }
 
-const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer, onNavigateToHistory }) => {
+const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer, onNavigateToHistory, isPinVerified, setIsPinVerified, didShowPinVerifyModal, setDidShowPinVerifyModal }) => {
   const [accountData, setAccountData] = useState<AccountData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showAccountNumber, setShowAccountNumber] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
-  const [showVerifyPinModal, setShowVerifyPinModal] = useState(false);  const [newPin, setNewPin] = useState('');
+  const [showVerifyPinModal, setShowVerifyPinModal] = useState(false);
+  const [newPin, setNewPin] = useState('');
   const [verifyPin, setVerifyPin] = useState('');
-  const [isPinVerified, setIsPinVerified] = useState(false);
   const [pendingAction, setPendingAction] = useState<'none' | 'history'>('none');
 
   // สร้างเลขบัญชีสำหรับผู้ใช้ (10 หลัก)
@@ -254,7 +258,6 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer, onN
         setIsPinVerified(true);
         setVerifyPin('');
         setShowVerifyPinModal(false);
-        
         // Execute pending action
         if (pendingAction === 'history') {
           setPendingAction('none');
@@ -298,6 +301,8 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer, onN
             onPress: async () => {
               try {
                 await auth().signOut();
+                setDidShowPinVerifyModal(false);
+                setIsPinVerified(false);
                 console.log('User logged out successfully');
               } catch (error) {
                 console.error('Error logging out:', error);
@@ -310,7 +315,9 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer, onN
     } catch (error) {
       console.error('Error in logout process:', error);
     }
-  };  useEffect(() => {
+  };
+
+  useEffect(() => {
     console.log('DepositScreen mounted, checking auth state...');
     
     // Check auth state first
@@ -347,11 +354,16 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer, onN
 
   // เช็ค PIN เมื่อได้ข้อมูลบัญชีแล้ว
   useEffect(() => {
-    if (accountData && accountData.pin !== '0000' && !isPinVerified) {
-      // ถ้ามี PIN ที่ไม่ใช่ default และยังไม่ได้ verify ให้เปิด verify modal
+    if (
+      accountData &&
+      accountData.pin !== '0000' &&
+      !isPinVerified &&
+      !didShowPinVerifyModal
+    ) {
       setShowVerifyPinModal(true);
+      setDidShowPinVerifyModal(true);
     }
-  }, [accountData, isPinVerified]);
+  }, [accountData, isPinVerified, didShowPinVerifyModal, setDidShowPinVerifyModal]);
 
   if (loading) {
     return (
@@ -609,18 +621,7 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer, onN
                   onPress={handleVerifyPin}
                 >
                   <Text style={styles.verifyButtonText}>Verify PIN</Text>
-                </TouchableOpacity>                {/* Only show cancel if PIN is default (0000) */}
-                {accountData?.pin === '0000' && (
-                  <TouchableOpacity 
-                    style={styles.cancelButton}
-                    onPress={() => {
-                      setPendingAction('none');
-                      setShowVerifyPinModal(false);
-                    }}
-                  >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                )}
+                </TouchableOpacity>
               </View>
             </View>
           </View>

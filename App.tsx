@@ -19,6 +19,8 @@ function App() {
   const [currentScreen, setCurrentScreen] = useState<'login' | 'register' | 'deposit' | 'transfer' | 'history'>('login');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPinVerified, setIsPinVerified] = useState(false);
+  const [didShowPinVerifyModal, setDidShowPinVerifyModal] = useState(false);
 
   useEffect(() => {
     console.log('Setting up auth state listener...');
@@ -70,7 +72,7 @@ function App() {
         </View>
       );
     }    if (isAuthenticated && currentScreen === 'deposit') {
-      return <DepositScreen onNavigateToTransfer={navigateToTransfer} onNavigateToHistory={navigateToHistory} />;
+      return <DepositScreen onNavigateToTransfer={navigateToTransfer} onNavigateToHistory={navigateToHistory} isPinVerified={isPinVerified} setIsPinVerified={setIsPinVerified} didShowPinVerifyModal={didShowPinVerifyModal} setDidShowPinVerifyModal={setDidShowPinVerifyModal} />;
     }
 
     if (isAuthenticated && currentScreen === 'transfer') {
