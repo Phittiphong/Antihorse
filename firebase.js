@@ -42,4 +42,4 @@ const setupDatabase = () => {
 setupDatabase();
 
 // Export Firebase services for use in components
-export { auth, database, firestore };
+export default { auth, database, firestore };

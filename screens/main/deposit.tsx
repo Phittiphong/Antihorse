@@ -12,7 +12,7 @@ import {
   Modal,
   TextInput,
 } from 'react-native';
-import { auth, database } from '../../firebase';
+import firebase from '../../firebase';
 
 interface AccountData {
   accid: string;
@@ -71,7 +71,7 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer, onN
     try {
       console.log('Starting fetchAccountData...');
       
-      const user = auth().currentUser;
+      const user = firebase.auth().currentUser;
       console.log('Current user:', user ? user.uid : 'No user');
       
       if (!user) {
@@ -94,7 +94,7 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer, onN
       };
 
       try {
-        const userRef = database().ref(`/users/${user.uid}`);
+        const userRef = firebase.database().ref(`/users/${user.uid}`);
         
         // ลดเวลา timeout ลง
         const timeoutPromise = new Promise<any>((_, reject) => 
@@ -161,7 +161,7 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer, onN
 
       try {
         console.log('Attempting to save to Firebase...');
-        const userRef = database().ref(`/users/${userId}`);
+        const userRef = firebase.database().ref(`/users/${userId}`);
         await userRef.set(userData);
         console.log('Account created in database successfully');
         
@@ -199,13 +199,13 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer, onN
     }
 
     try {
-      const user = auth().currentUser;
+      const user = firebase.auth().currentUser;
       if (!user || !accountData) return;
 
       const newBalance = accountData.balance + amount;
       
       try {
-        await database().ref(`/users/${user.uid}`).update({
+        await firebase.database().ref(`/users/${user.uid}`).update({
           balance: newBalance,
         });
         console.log('Balance updated in database successfully');
@@ -232,11 +232,11 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer, onN
         return;
       }
 
-      const user = auth().currentUser;
+      const user = firebase.auth().currentUser;
       if (!user || !accountData) return;
 
       try {
-        await database().ref(`/users/${user.uid}`).update({
+        await firebase.database().ref(`/users/${user.uid}`).update({
           pin: newPin,
         });
         
@@ -307,7 +307,7 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer, onN
             text: 'Logout',
             onPress: async () => {
               try {
-                await auth().signOut();
+                await firebase.auth().signOut();
                 setDidShowPinVerifyModal(false);
                 setIsPinVerified(false);
                 console.log('User logged out successfully');
@@ -332,12 +332,12 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer, onN
     }
     try {
       const reportId = Date.now().toString();
-      await database().ref(`/fraud_reports/${reportId}`).set({
+      await firebase.database().ref(`/fraud_reports/${reportId}`).set({
         accnumber: fraudAccNumber,
         name: fraudName,
         amount: fraudAmount,
         reportedAt: new Date().toISOString(),
-        reporter: auth().currentUser?.uid || 'anonymous',
+        reporter: firebase.auth().currentUser?.uid || 'anonymous',
       });
       setShowReportFraudModal(false);
       setFraudAccNumber('');
@@ -353,8 +353,8 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer, onN
   const loadFraudReports = async () => {
     try {
       const [snap, usersSnap] = await Promise.all([
-        database().ref('/fraud_reports').once('value'),
-        database().ref('/users').once('value'),
+        firebase.database().ref('/fraud_reports').once('value'),
+        firebase.database().ref('/users').once('value'),
       ]);
       const data = snap.val() || {};
       const users = usersSnap.val() || {};
@@ -376,14 +376,14 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer, onN
     // Check auth state first
     const checkAuthAndFetch = async () => {
       try {
-        const user = auth().currentUser;
+        const user = firebase.auth().currentUser;
         console.log('Auth check - Current user:', user ? user.uid : 'No user logged in');
         
         if (!user) {
           console.log('No user found, waiting for auth state...');
           // Wait a bit for auth state to settle
           setTimeout(() => {
-            const retryUser = auth().currentUser;
+            const retryUser = firebase.auth().currentUser;
             if (retryUser) {
               console.log('User found on retry:', retryUser.uid);
               fetchAccountData();
@@ -436,63 +436,17 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer, onN
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         scrollEnabled={!accountData || accountData.pin === '0000' || isPinVerified}
-      >        {/* Header */}
+      >
         <View style={styles.header}>
           <Text style={styles.headerTitle}>My Account</Text>
-          <View style={styles.headerActions}>            <TouchableOpacity 
-              onPress={onRefresh} 
-              style={styles.refreshButton}
-              disabled={!!(accountData && accountData.pin !== '0000' && !isPinVerified)}
-            >
-              <Text style={styles.refreshIcon}>🔄</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setShowDropdown(!showDropdown)}
-              style={styles.menuButton}
-              disabled={!!(accountData && accountData.pin !== '0000' && !isPinVerified)}
-            >
-              <Text style={styles.menuIcon}>⋮</Text>
-            </TouchableOpacity>
-          </View>
-        </View>{/* Dropdown Menu */}
-        {showDropdown && (
-          <View style={styles.dropdown}>
-            <TouchableOpacity 
-              style={styles.dropdownItem} 
-              onPress={() => {
-                setShowDropdown(false);
-                setShowPinModal(true);
-              }}
-            >
-              <Text style={styles.dropdownIcon}>🔐</Text>
-              <Text style={styles.dropdownText}>Set PIN</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.dropdownItem} 
-              onPress={() => {
-                setShowDropdown(false);
-                setShowVerifyPinModal(true);
-              }}
-            >
-              <Text style={styles.dropdownIcon}>🔑</Text>
-              <Text style={styles.dropdownText}>Verify PIN</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.dropdownItem} onPress={handleLogout}>
-              <Text style={styles.dropdownIcon}>🚪</Text>
-              <Text style={styles.dropdownText}>Logout</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Account Card */}
+          
+        </View>
         <View style={styles.accountCard}>
           <View style={styles.cardHeader}>
             <Text style={styles.bankIcon}>🏦</Text>
             <Text style={styles.bankName}>AntiHorse Bank</Text>
           </View>
-            <View style={styles.accountInfo}>
+          <View style={styles.accountInfo}>
             <Text style={styles.accountLabel}>Account Number</Text>
             <View style={styles.accountNumberContainer}>
               <Text style={styles.accountNumber}>
@@ -511,12 +465,10 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer, onN
               </TouchableOpacity>
             </View>
           </View>
-
           <View style={styles.accountInfo}>
             <Text style={styles.accountLabel}>Account Name</Text>
             <Text style={styles.accountName}>{accountData?.name}</Text>
           </View>
-
           <View style={styles.balanceSection}>
             <Text style={styles.balanceLabel}>Available Balance</Text>
             <Text style={styles.balanceAmount}>
@@ -526,262 +478,10 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer, onN
               })}
             </Text>
           </View>
-
           <Text style={styles.lastUpdated}>
             Account ID: {accountData?.accid}
           </Text>
         </View>
-
-        {/* Quick Actions */}
-        <View style={styles.actionsSection}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-            <View style={styles.actionButtons}>            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => addMoney(100)}
-              disabled={!!(accountData && accountData.pin !== '0000' && !isPinVerified)}
-            >
-              <Text style={styles.actionIcon}>💰</Text>
-              <Text style={styles.actionButtonText}>Add ฿100</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => addMoney(500)}
-              disabled={!!(accountData && accountData.pin !== '0000' && !isPinVerified)}
-            >
-              <Text style={styles.actionIcon}>💰</Text>
-              <Text style={styles.actionButtonText}>Add ฿500</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => addMoney(1000)}
-              disabled={!!(accountData && accountData.pin !== '0000' && !isPinVerified)}
-            >
-              <Text style={styles.actionIcon}>💰</Text>
-              <Text style={styles.actionButtonText}>Add ฿1,000</Text>
-            </TouchableOpacity>
-          </View>
-        </View>        {/* Features */}
-        <View style={styles.featuresSection}>
-          <Text style={styles.sectionTitle}>Banking Services</Text>
-            <TouchableOpacity 
-            style={styles.featureItem}
-            onPress={() => {
-              if (accountData && accountData.pin !== '0000' && !isPinVerified) {
-                Alert.alert(
-                  'PIN Required',
-                  'Please verify your PIN to access transfer functionality.',
-                  [{ text: 'OK' }]
-                );
-                return;
-              }
-              onNavigateToTransfer();
-            }}
-          >
-            <Text style={styles.featureIcon}>💸</Text>
-            <Text style={styles.featureText}>Transfer Money</Text>
-            <Text style={styles.chevron}>›</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.featureItem}>
-            <Text style={styles.featureIcon}>💳</Text>
-            <Text style={styles.featureText}>Pay Bills</Text>
-            <Text style={styles.chevron}>›</Text>
-          </TouchableOpacity>          <TouchableOpacity 
-            style={styles.featureItem}
-            onPress={() => {
-              if (accountData && accountData.pin !== '0000' && !isPinVerified) {
-                setPendingAction('history');
-                setShowVerifyPinModal(true);
-                return;
-              }
-              onNavigateToHistory();
-            }}
-          >
-            <Text style={styles.featureIcon}>📊</Text>
-            <Text style={styles.featureText}>Transaction History</Text>
-            <Text style={styles.chevron}>›</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.featureItem}>
-            <Text style={styles.featureIcon}>⚙️</Text>
-            <Text style={styles.featureText}>Account Settings</Text>
-            <Text style={styles.chevron}>›</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={styles.featureItem}
-            onPress={() => setShowReportFraudModal(true)}
-          >
-            <Text style={styles.featureIcon}>🚨</Text>
-            <Text style={styles.featureText}>Report Fraud</Text>
-            <Text style={styles.chevron}>›</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* PIN Management - Add New PIN */}
-        <Modal
-          visible={showPinModal}
-          animationType="slide"
-          transparent
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Set New PIN</Text>
-              
-              <TextInput
-                style={styles.pinInput}
-                placeholder="Enter new 6-digit PIN"
-                value={newPin}
-                onChangeText={setNewPin}
-                keyboardType="numeric"
-                maxLength={6}
-              />
-
-              <View style={styles.modalActions}>
-                <TouchableOpacity 
-                  style={styles.saveButton}
-                  onPress={handleAddPin}
-                >
-                  <Text style={styles.saveButtonText}>Save PIN</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity 
-                  style={styles.cancelButton}
-                  onPress={() => setShowPinModal(false)}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>        {/* PIN Management - Verify PIN */}
-        <Modal
-          visible={showVerifyPinModal}
-          animationType="slide"
-          transparent
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Verify PIN</Text>
-              <Text style={styles.modalSubtitle}>Please enter your PIN to continue</Text>
-              
-              <TextInput
-                style={styles.pinInput}
-                placeholder="Enter your PIN"
-                value={verifyPin}
-                onChangeText={setVerifyPin}
-                keyboardType="numeric"
-                maxLength={6}
-                secureTextEntry
-              />
-
-              <View style={styles.modalActions}>
-                <TouchableOpacity 
-                  style={styles.verifyButton}
-                  onPress={handleVerifyPin}
-                >
-                  <Text style={styles.verifyButtonText}>Verify PIN</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-
-        {/* Report Fraud Modal */}
-        <Modal
-          visible={showReportFraudModal}
-          animationType="slide"
-          transparent
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              {/* ปุ่ม X ปิด modal */}
-              <TouchableOpacity
-                style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}
-                onPress={() => setShowReportFraudModal(false)}
-              >
-                <Text style={{ fontSize: 22, color: '#DC2626', fontWeight: 'bold' }}>×</Text>
-              </TouchableOpacity>
-              <Text style={[styles.modalTitle, { marginTop: 8 }]}>Report Fraud</Text>
-              <TextInput
-                style={styles.pinInput}
-                placeholder="Account Number"
-                value={fraudAccNumber}
-                onChangeText={setFraudAccNumber}
-                keyboardType="numeric"
-                maxLength={20}
-              />
-              <TextInput
-                style={styles.pinInput}
-                placeholder="Account Name"
-                value={fraudName}
-                onChangeText={setFraudName}
-                maxLength={50}
-              />
-              <TextInput
-                style={styles.pinInput}
-                placeholder="Fraud Amount (THB)"
-                value={fraudAmount}
-                onChangeText={setFraudAmount}
-                keyboardType="numeric"
-                maxLength={12}
-              />
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
-                <TouchableOpacity 
-                  style={[styles.saveButton, { flex: 1, marginRight: 4 }]}
-                  onPress={handleSubmitFraudReport}
-                >
-                  <Text style={styles.saveButtonText}>Submit</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.cancelButton, { backgroundColor: '#1E40AF', flex: 1, marginLeft: 4 }]}
-                  onPress={async () => {
-                    await loadFraudReports();
-                    setShowReportHistoryModal(true);
-                  }}
-                >
-                  <Text style={[styles.cancelButtonText, { color: 'white' }]}>History</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-
-        {/* Report History Modal */}
-        <Modal
-          visible={showReportHistoryModal}
-          animationType="slide"
-          transparent
-        >
-          <View style={styles.modalContainer}>
-            <View style={[styles.modalContent, { maxHeight: 500 }]}> 
-              <Text style={styles.modalTitle}>Fraud Report History</Text>
-              <ScrollView style={{ width: '100%' }}>
-                {fraudReports.length === 0 ? (
-                  <Text style={{ textAlign: 'center', color: '#6B7280', marginTop: 16 }}>No reports found.</Text>
-                ) : (
-                  fraudReports.map((r, idx) => (
-                    <View key={idx} style={{ borderBottomWidth: 1, borderBottomColor: '#eee', paddingVertical: 8, marginBottom: 4, borderRadius: 6, backgroundColor: '#F3F4F6', paddingHorizontal: 8 }}>
-                      <Text style={{ fontSize: 15 }}>Account Number: <Text style={{ fontWeight: 'bold' }}>{r.accnumber}</Text></Text>
-                      <Text style={{ fontSize: 15 }}>Name: <Text style={{ fontWeight: 'bold' }}>{r.name}</Text></Text>
-                      <Text style={{ fontSize: 15 }}>Amount: <Text style={{ fontWeight: 'bold', color: '#DC2626' }}>{r.amount}</Text></Text>
-                      <Text style={{ fontSize: 14, color: '#6B7280' }}>Date: <Text style={{ fontWeight: 'bold', color: '#1E40AF' }}>{r.reportedAt ? new Date(r.reportedAt).toLocaleString() : '-'}</Text></Text>
-                      <Text style={{ fontSize: 14, color: '#6B7280' }}>Reporter: <Text style={{ fontWeight: 'bold', color: '#1E40AF' }}>{userMap[r.reporter] || r.reporter}</Text></Text>
-                    </View>
-                  ))
-                )}
-              </ScrollView>
-              <TouchableOpacity
-                style={[styles.cancelButton, { marginTop: 16 }]}
-                onPress={() => setShowReportHistoryModal(false)}
-              >
-                <Text style={styles.cancelButtonText}>Close</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
       </ScrollView>
     </SafeAreaView>
   );
@@ -804,7 +504,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-  },  header: {
+  },
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -834,38 +535,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#1E40AF',
     fontWeight: 'bold',
-  },
-  dropdown: {
-    position: 'absolute',
-    top: 60,
-    right: 16,
-    backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-    zIndex: 1000,
-    minWidth: 120,
-  },
-  dropdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  dropdownIcon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
-  dropdownText: {
-    fontSize: 14,
-    color: '#1F2937',
   },
   accountCard: {
     backgroundColor: 'white',
@@ -899,7 +568,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     marginBottom: 4,
-  },  accountNumber: {
+  },
+  accountNumber: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1F2937',
@@ -978,47 +648,9 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginTop: 8,
   },
-  featuresSection: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-  },  featureText: {
-    flex: 1,
-    fontSize: 16,
-    color: '#1F2937',
-    marginLeft: 16,
-  },
-  bankIcon: {
-    fontSize: 32,
-    marginRight: 12,
-  },
   actionIcon: {
     fontSize: 20,
     marginBottom: 8,
-  },
-  featureIcon: {
-    fontSize: 20,
-    color: '#1E40AF',
-  },
-  chevron: {
-    fontSize: 20,
-    color: '#9CA3AF',
-    fontWeight: 'bold',
   },
   modalContainer: {
     flex: 1,
@@ -1040,7 +672,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 5,
-  },  modalTitle: {
+  },
+  modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#1F2937',
@@ -1108,6 +741,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  bankIcon: {
+    fontSize: 32,
+    marginRight: 12,
   },
 });
 

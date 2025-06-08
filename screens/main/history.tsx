@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, FlatList, ActivityIndicator } from 'react-native';
-import { auth, database } from '../../firebase';
+import firebase from '../../firebase';
 
 interface Transaction {
   id: string;
@@ -20,11 +20,11 @@ interface UserInfo {
 }
 
 interface HistoryScreenProps {
-  onBackToDeposit: () => void;
+  onBack: () => void;
   onRepeatTransaction?: (tx: Transaction & { fromInfo: UserInfo; toInfo: UserInfo }) => void;
 }
 
-const HistoryScreen: React.FC<HistoryScreenProps> = ({ onBackToDeposit, onRepeatTransaction }) => {
+const HistoryScreen: React.FC<HistoryScreenProps> = ({ onBack, onRepeatTransaction }) => {
   const [transactions, setTransactions] = useState<(Transaction & { fromInfo?: UserInfo; toInfo?: UserInfo })[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,15 +32,15 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ onBackToDeposit, onRepeat
     const fetchTransactions = async () => {
       setLoading(true);
       try {
-        const user = auth().currentUser;
+        const user = firebase.auth().currentUser;
         if (!user) {
           setTransactions([]);
           setLoading(false);
           return;
         }
         const [txSnap, usersSnap] = await Promise.all([
-          database().ref('/transactions').once('value'),
-          database().ref('/users').once('value'),
+          firebase.database().ref('/transactions').once('value'),
+          firebase.database().ref('/users').once('value'),
         ]);
         const txData = txSnap.val() || {};
         const usersData = usersSnap.val() || {};
@@ -69,10 +69,10 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ onBackToDeposit, onRepeat
   const renderItem = ({ item }: { item: Transaction & { fromInfo?: UserInfo; toInfo?: UserInfo } }) => (
     <View style={styles.txItem}>
       <Text style={styles.txType}>
-        {item.from === auth().currentUser?.uid ? 'Sent' : 'Received'}
+        {item.from === firebase.auth().currentUser?.uid ? 'Sent' : 'Received'}
       </Text>
       <Text style={styles.txAmount}>
-        {item.from === auth().currentUser?.uid ? '-' : '+'}
+        {item.from === firebase.auth().currentUser?.uid ? '-' : '+'}
         {item.amount} ฿
       </Text>
       {item.note ? <Text style={styles.txNote}>{item.note}</Text> : null}
@@ -104,7 +104,7 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ onBackToDeposit, onRepeat
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBackToDeposit} style={styles.backButton}>
+        <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Text style={styles.backText}>‹ Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Transaction History</Text>

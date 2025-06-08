@@ -10,7 +10,7 @@ import {
   KeyboardAvoidingView,
   Alert 
 } from 'react-native';
-import { auth } from '../../firebase';
+import firebase from '../../firebase';
 
 interface LoginScreenProps {
   onNavigateToRegister: () => void;
@@ -33,7 +33,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToRegister }) => {
     }
 
     setIsLoading(true);    try {
-      const userCredential = await auth().signInWithEmailAndPassword(email, password);
+      const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
       console.log('Login successful:', userCredential.user.uid);
       // ไม่ต้องแสดง Alert เพราะ auth state listener จะจัดการ navigation
     } catch (error: any) {

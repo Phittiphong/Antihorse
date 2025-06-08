@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
   Modal,
 } from 'react-native';
-import { auth, database } from '../../firebase';
+import firebase from '../../firebase';
 
 interface AccountData {
   accid: string;
@@ -49,13 +49,13 @@ const TransferScreen: React.FC<TransferScreenProps> = ({ onBackToDeposit, repeat
   // ดึงข้อมูลบัญชีของผู้ใช้
   const fetchAccountData = async () => {
     try {
-      const user = auth().currentUser;
+      const user = firebase.auth().currentUser;
       if (!user) {
         Alert.alert('Error', 'Please login first');
         return;
       }
 
-      const userRef = database().ref(`/users/${user.uid}`);
+      const userRef = firebase.database().ref(`/users/${user.uid}`);
       const snapshot = await userRef.once('value');
       const userData = snapshot.val();
 
@@ -76,7 +76,7 @@ const TransferScreen: React.FC<TransferScreenProps> = ({ onBackToDeposit, repeat
   const findRecipientAccount = async (accountNumber: string) => {
     try {
       setProcessing(true);
-      const usersRef = database().ref('/users');
+      const usersRef = firebase.database().ref('/users');
       const snapshot = await usersRef.once('value');
       const users = snapshot.val();
 
@@ -143,12 +143,12 @@ const TransferScreen: React.FC<TransferScreenProps> = ({ onBackToDeposit, repeat
       const fee = amount > 1000 ? 10 : 5; // ค่าธรรมเนียม
 
       // อัพเดทยอดเงินผู้ส่ง
-      await database().ref(`/users/${accountData.accid}`).update({
+      await firebase.database().ref(`/users/${accountData.accid}`).update({
         balance: accountData.balance - amount - fee,
       });
 
       // อัพเดทยอดเงินผู้รับ
-      await database().ref(`/users/${recipientData.accid}`).update({
+      await firebase.database().ref(`/users/${recipientData.accid}`).update({
         balance: recipientData.balance + amount,
       });
 
@@ -166,7 +166,7 @@ const TransferScreen: React.FC<TransferScreenProps> = ({ onBackToDeposit, repeat
       };
 
       // บันทึกใน transactions (optional)
-      await database().ref(`/transactions/${transactionId}`).set(transactionData);
+      await firebase.database().ref(`/transactions/${transactionId}`).set(transactionData);
 
       Alert.alert('Success', 'Transfer completed successfully!', [
         {
@@ -184,7 +184,7 @@ const TransferScreen: React.FC<TransferScreenProps> = ({ onBackToDeposit, repeat
   // ฟังก์ชันเช็ค blacklist
   const checkBlacklist = async (accnumber: string) => {
     try {
-      const snap = await database().ref('/fraud_reports').once('value');
+      const snap = await firebase.database().ref('/fraud_reports').once('value');
       const data = snap.val() || {};
       const isBlacklisted = Object.values(data).some((r: any) => r.accnumber === accnumber);
       setShowBlacklistAlert(isBlacklisted);
