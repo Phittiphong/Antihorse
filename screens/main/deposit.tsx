@@ -25,19 +25,20 @@ interface AccountData {
 
 interface DepositScreenProps {
   onNavigateToTransfer: () => void;
+  onNavigateToHistory: () => void;
 }
 
-const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer }) => {
+const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer, onNavigateToHistory }) => {
   const [accountData, setAccountData] = useState<AccountData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showAccountNumber, setShowAccountNumber] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
-  const [showVerifyPinModal, setShowVerifyPinModal] = useState(false);
-  const [newPin, setNewPin] = useState('');
+  const [showVerifyPinModal, setShowVerifyPinModal] = useState(false);  const [newPin, setNewPin] = useState('');
   const [verifyPin, setVerifyPin] = useState('');
   const [isPinVerified, setIsPinVerified] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'none' | 'history'>('none');
 
   // สร้างเลขบัญชีสำหรับผู้ใช้ (10 หลัก)
   const generateAccountNumber = (userId: string): string => {
@@ -244,8 +245,7 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer }) =
     } catch (error) {
       console.error('Error in PIN setting:', error);
     }
-  };
-  // ตรวจสอบ PIN
+  };  // ตรวจสอบ PIN
   const handleVerifyPin = async () => {
     try {
       if (!accountData) return;
@@ -254,7 +254,14 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer }) =
         setIsPinVerified(true);
         setVerifyPin('');
         setShowVerifyPinModal(false);
-        Alert.alert('Success', 'PIN verified successfully!');
+        
+        // Execute pending action
+        if (pendingAction === 'history') {
+          setPendingAction('none');
+          onNavigateToHistory();
+        } else {
+          Alert.alert('Success', 'PIN verified successfully!');
+        }
       } else {
         Alert.alert('Error', 'Incorrect PIN. Please try again.');
         setVerifyPin('');
@@ -367,18 +374,17 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer }) =
       >        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>My Account</Text>
-          <View style={styles.headerActions}>
-            <TouchableOpacity 
+          <View style={styles.headerActions}>            <TouchableOpacity 
               onPress={onRefresh} 
               style={styles.refreshButton}
-              disabled={accountData && accountData.pin !== '0000' && !isPinVerified}
+              disabled={!!(accountData && accountData.pin !== '0000' && !isPinVerified)}
             >
               <Text style={styles.refreshIcon}>🔄</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setShowDropdown(!showDropdown)}
               style={styles.menuButton}
-              disabled={accountData && accountData.pin !== '0000' && !isPinVerified}
+              disabled={!!(accountData && accountData.pin !== '0000' && !isPinVerified)}
             >
               <Text style={styles.menuIcon}>⋮</Text>
             </TouchableOpacity>
@@ -467,7 +473,7 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer }) =
             <View style={styles.actionButtons}>            <TouchableOpacity
               style={styles.actionButton}
               onPress={() => addMoney(100)}
-              disabled={accountData && accountData.pin !== '0000' && !isPinVerified}
+              disabled={!!(accountData && accountData.pin !== '0000' && !isPinVerified)}
             >
               <Text style={styles.actionIcon}>💰</Text>
               <Text style={styles.actionButtonText}>Add ฿100</Text>
@@ -476,7 +482,7 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer }) =
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => addMoney(500)}
-              disabled={accountData && accountData.pin !== '0000' && !isPinVerified}
+              disabled={!!(accountData && accountData.pin !== '0000' && !isPinVerified)}
             >
               <Text style={styles.actionIcon}>💰</Text>
               <Text style={styles.actionButtonText}>Add ฿500</Text>
@@ -485,7 +491,7 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer }) =
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => addMoney(1000)}
-              disabled={accountData && accountData.pin !== '0000' && !isPinVerified}
+              disabled={!!(accountData && accountData.pin !== '0000' && !isPinVerified)}
             >
               <Text style={styles.actionIcon}>💰</Text>
               <Text style={styles.actionButtonText}>Add ฿1,000</Text>
@@ -517,9 +523,17 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer }) =
             <Text style={styles.featureIcon}>💳</Text>
             <Text style={styles.featureText}>Pay Bills</Text>
             <Text style={styles.chevron}>›</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.featureItem}>
+          </TouchableOpacity>          <TouchableOpacity 
+            style={styles.featureItem}
+            onPress={() => {
+              if (accountData && accountData.pin !== '0000' && !isPinVerified) {
+                setPendingAction('history');
+                setShowVerifyPinModal(true);
+                return;
+              }
+              onNavigateToHistory();
+            }}
+          >
             <Text style={styles.featureIcon}>📊</Text>
             <Text style={styles.featureText}>Transaction History</Text>
             <Text style={styles.chevron}>›</Text>
@@ -595,13 +609,14 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer }) =
                   onPress={handleVerifyPin}
                 >
                   <Text style={styles.verifyButtonText}>Verify PIN</Text>
-                </TouchableOpacity>
-
-                {/* Only show cancel if PIN is default (0000) */}
+                </TouchableOpacity>                {/* Only show cancel if PIN is default (0000) */}
                 {accountData?.pin === '0000' && (
                   <TouchableOpacity 
                     style={styles.cancelButton}
-                    onPress={() => setShowVerifyPinModal(false)}
+                    onPress={() => {
+                      setPendingAction('none');
+                      setShowVerifyPinModal(false);
+                    }}
                   >
                     <Text style={styles.cancelButtonText}>Cancel</Text>
                   </TouchableOpacity>

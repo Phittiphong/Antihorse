@@ -11,11 +11,12 @@ import LoginScreen from './screens/auth/login';
 import RegisterScreen from './screens/auth/register';
 import DepositScreen from './screens/main/deposit';
 import TransferScreen from './screens/main/transfer';
+import HistoryScreen from './screens/main/history';
 import { auth } from './firebase';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
-  const [currentScreen, setCurrentScreen] = useState<'login' | 'register' | 'deposit' | 'transfer'>('login');
+  const [currentScreen, setCurrentScreen] = useState<'login' | 'register' | 'deposit' | 'transfer' | 'history'>('login');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -52,9 +53,12 @@ function App() {
   const navigateToTransfer = () => {
     setCurrentScreen('transfer');
   };
-
   const navigateToDeposit = () => {
     setCurrentScreen('deposit');
+  };
+
+  const navigateToHistory = () => {
+    setCurrentScreen('history');
   };
 
   const renderScreen = () => {
@@ -65,14 +69,16 @@ function App() {
           <Text style={{marginTop: 16, fontSize: 16, color: '#6B7280'}}>Loading...</Text>
         </View>
       );
-    }
-
-    if (isAuthenticated && currentScreen === 'deposit') {
-      return <DepositScreen onNavigateToTransfer={navigateToTransfer} />;
+    }    if (isAuthenticated && currentScreen === 'deposit') {
+      return <DepositScreen onNavigateToTransfer={navigateToTransfer} onNavigateToHistory={navigateToHistory} />;
     }
 
     if (isAuthenticated && currentScreen === 'transfer') {
       return <TransferScreen onBackToDeposit={navigateToDeposit} />;
+    }
+
+    if (isAuthenticated && currentScreen === 'history') {
+      return <HistoryScreen onBackToDeposit={navigateToDeposit} />;
     }
     
     if (currentScreen === 'login') {

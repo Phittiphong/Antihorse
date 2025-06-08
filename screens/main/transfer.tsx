@@ -29,9 +29,10 @@ interface TransferData {
 
 interface TransferScreenProps {
   onBackToDeposit: () => void;
+  repeatTx?: any;
 }
 
-const TransferScreen: React.FC<TransferScreenProps> = ({ onBackToDeposit }) => {
+const TransferScreen: React.FC<TransferScreenProps> = ({ onBackToDeposit, repeatTx }) => {
   const [currentStep, setCurrentStep] = useState<'input' | 'review' | 'processing'>('input');
   const [accountData, setAccountData] = useState<AccountData | null>(null);
   const [recipientData, setRecipientData] = useState<AccountData | null>(null);
@@ -181,6 +182,16 @@ const TransferScreen: React.FC<TransferScreenProps> = ({ onBackToDeposit }) => {
   useEffect(() => {
     fetchAccountData();
   }, []);
+
+  useEffect(() => {
+    if (repeatTx) {
+      setTransferData({
+        recipientAccount: repeatTx.toInfo?.accnumber || '',
+        amount: repeatTx.amount ? String(repeatTx.amount) : '',
+        note: repeatTx.note || '',
+      });
+    }
+  }, [repeatTx]);
 
   if (loading) {
     return (
