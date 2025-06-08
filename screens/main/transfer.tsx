@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   TextInput,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { auth, database } from '../../firebase';
 
@@ -43,6 +44,7 @@ const TransferScreen: React.FC<TransferScreenProps> = ({ onBackToDeposit, repeat
   });
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [showBlacklistAlert, setShowBlacklistAlert] = useState(false);
 
   // ดึงข้อมูลบัญชีของผู้ใช้
   const fetchAccountData = async () => {
@@ -179,6 +181,18 @@ const TransferScreen: React.FC<TransferScreenProps> = ({ onBackToDeposit, repeat
     }
   };
 
+  // ฟังก์ชันเช็ค blacklist
+  const checkBlacklist = async (accnumber: string) => {
+    try {
+      const snap = await database().ref('/fraud_reports').once('value');
+      const data = snap.val() || {};
+      const isBlacklisted = Object.values(data).some((r: any) => r.accnumber === accnumber);
+      setShowBlacklistAlert(isBlacklisted);
+    } catch (e) {
+      setShowBlacklistAlert(false);
+    }
+  };
+
   useEffect(() => {
     fetchAccountData();
   }, []);
@@ -192,6 +206,15 @@ const TransferScreen: React.FC<TransferScreenProps> = ({ onBackToDeposit, repeat
       });
     }
   }, [repeatTx]);
+
+  useEffect(() => {
+    if (currentStep === 'review' && recipientData) {
+      checkBlacklist(recipientData.accnumber);
+    } else {
+      setShowBlacklistAlert(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep, recipientData]);
 
   if (loading) {
     return (
@@ -367,6 +390,30 @@ const TransferScreen: React.FC<TransferScreenProps> = ({ onBackToDeposit, repeat
         {currentStep === 'review' && renderReviewStep()}
         {currentStep === 'processing' && renderProcessingStep()}
       </ScrollView>
+      {/* Blacklist Alert Modal */}
+      <Modal
+        visible={showBlacklistAlert}
+        animationType="fade"
+        transparent
+      >
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 28, minWidth: 300, alignItems: 'center', position: 'relative', borderWidth: 2, borderColor: '#DC2626' }}>
+            <TouchableOpacity
+              style={{ position: 'absolute', top: 10, right: 10, zIndex: 10 }}
+              onPress={() => setShowBlacklistAlert(false)}
+            >
+              <Text style={{ fontSize: 22, color: '#DC2626', fontWeight: 'bold' }}>×</Text>
+            </TouchableOpacity>
+            <Text style={{ fontSize: 32, color: '#DC2626', marginBottom: 12 }}>❗</Text>
+            <Text style={{ color: '#DC2626', fontWeight: 'bold', fontSize: 18, textAlign: 'center', marginBottom: 4 }}>
+              This seller has been blacklisted.
+            </Text>
+            <Text style={{ color: '#DC2626', fontSize: 15, textAlign: 'center' }}>
+              Avoid making any payments.
+            </Text>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
