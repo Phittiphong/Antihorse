@@ -43,6 +43,13 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer, onN
   const [newPin, setNewPin] = useState('');
   const [verifyPin, setVerifyPin] = useState('');
   const [pendingAction, setPendingAction] = useState<'none' | 'history'>('none');
+  const [showReportFraudModal, setShowReportFraudModal] = useState(false);
+  const [fraudAccNumber, setFraudAccNumber] = useState('');
+  const [fraudName, setFraudName] = useState('');
+  const [fraudAmount, setFraudAmount] = useState('');
+  const [showReportHistoryModal, setShowReportHistoryModal] = useState(false);
+  const [fraudReports, setFraudReports] = useState<any[]>([]);
+  const [userMap, setUserMap] = useState<{ [uid: string]: string }>({});
 
   // สร้างเลขบัญชีสำหรับผู้ใช้ (10 หลัก)
   const generateAccountNumber = (userId: string): string => {
@@ -317,6 +324,52 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer, onN
     }
   };
 
+  // ฟังก์ชันสำหรับส่งข้อมูล fraud
+  const handleSubmitFraudReport = async () => {
+    if (!fraudAccNumber || !fraudName || !fraudAmount) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+    try {
+      const reportId = Date.now().toString();
+      await database().ref(`/fraud_reports/${reportId}`).set({
+        accnumber: fraudAccNumber,
+        name: fraudName,
+        amount: fraudAmount,
+        reportedAt: new Date().toISOString(),
+        reporter: auth().currentUser?.uid || 'anonymous',
+      });
+      setShowReportFraudModal(false);
+      setFraudAccNumber('');
+      setFraudName('');
+      setFraudAmount('');
+      Alert.alert('Success', 'Fraud report submitted!');
+    } catch (e) {
+      Alert.alert('Error', 'Failed to submit fraud report');
+    }
+  };
+
+  // ฟังก์ชันโหลดประวัติการรีพอร์ตและชื่อผู้ใช้
+  const loadFraudReports = async () => {
+    try {
+      const [snap, usersSnap] = await Promise.all([
+        database().ref('/fraud_reports').once('value'),
+        database().ref('/users').once('value'),
+      ]);
+      const data = snap.val() || {};
+      const users = usersSnap.val() || {};
+      const userMap: { [uid: string]: string } = {};
+      Object.values(users).forEach((u: any) => {
+        userMap[u.accid] = u.name || u.email || u.accid;
+      });
+      setUserMap(userMap);
+      setFraudReports(Object.values(data).sort((a: any, b: any) => (b.reportedAt || '').localeCompare(a.reportedAt || '')));
+    } catch (e) {
+      setFraudReports([]);
+      setUserMap({});
+    }
+  };
+
   useEffect(() => {
     console.log('DepositScreen mounted, checking auth state...');
     
@@ -556,6 +609,15 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer, onN
             <Text style={styles.featureText}>Account Settings</Text>
             <Text style={styles.chevron}>›</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.featureItem}
+            onPress={() => setShowReportFraudModal(true)}
+          >
+            <Text style={styles.featureIcon}>🚨</Text>
+            <Text style={styles.featureText}>Report Fraud</Text>
+            <Text style={styles.chevron}>›</Text>
+          </TouchableOpacity>
         </View>
 
         {/* PIN Management - Add New PIN */}
@@ -623,6 +685,100 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer, onN
                   <Text style={styles.verifyButtonText}>Verify PIN</Text>
                 </TouchableOpacity>
               </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Report Fraud Modal */}
+        <Modal
+          visible={showReportFraudModal}
+          animationType="slide"
+          transparent
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              {/* ปุ่ม X ปิด modal */}
+              <TouchableOpacity
+                style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}
+                onPress={() => setShowReportFraudModal(false)}
+              >
+                <Text style={{ fontSize: 22, color: '#DC2626', fontWeight: 'bold' }}>×</Text>
+              </TouchableOpacity>
+              <Text style={[styles.modalTitle, { marginTop: 8 }]}>Report Fraud</Text>
+              <TextInput
+                style={styles.pinInput}
+                placeholder="Account Number"
+                value={fraudAccNumber}
+                onChangeText={setFraudAccNumber}
+                keyboardType="numeric"
+                maxLength={20}
+              />
+              <TextInput
+                style={styles.pinInput}
+                placeholder="Account Name"
+                value={fraudName}
+                onChangeText={setFraudName}
+                maxLength={50}
+              />
+              <TextInput
+                style={styles.pinInput}
+                placeholder="Fraud Amount (THB)"
+                value={fraudAmount}
+                onChangeText={setFraudAmount}
+                keyboardType="numeric"
+                maxLength={12}
+              />
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
+                <TouchableOpacity 
+                  style={[styles.saveButton, { flex: 1, marginRight: 4 }]}
+                  onPress={handleSubmitFraudReport}
+                >
+                  <Text style={styles.saveButtonText}>Submit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.cancelButton, { backgroundColor: '#1E40AF', flex: 1, marginLeft: 4 }]}
+                  onPress={async () => {
+                    await loadFraudReports();
+                    setShowReportHistoryModal(true);
+                  }}
+                >
+                  <Text style={[styles.cancelButtonText, { color: 'white' }]}>History</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Report History Modal */}
+        <Modal
+          visible={showReportHistoryModal}
+          animationType="slide"
+          transparent
+        >
+          <View style={styles.modalContainer}>
+            <View style={[styles.modalContent, { maxHeight: 500 }]}> 
+              <Text style={styles.modalTitle}>Fraud Report History</Text>
+              <ScrollView style={{ width: '100%' }}>
+                {fraudReports.length === 0 ? (
+                  <Text style={{ textAlign: 'center', color: '#6B7280', marginTop: 16 }}>No reports found.</Text>
+                ) : (
+                  fraudReports.map((r, idx) => (
+                    <View key={idx} style={{ borderBottomWidth: 1, borderBottomColor: '#eee', paddingVertical: 8, marginBottom: 4, borderRadius: 6, backgroundColor: '#F3F4F6', paddingHorizontal: 8 }}>
+                      <Text style={{ fontSize: 15 }}>Account Number: <Text style={{ fontWeight: 'bold' }}>{r.accnumber}</Text></Text>
+                      <Text style={{ fontSize: 15 }}>Name: <Text style={{ fontWeight: 'bold' }}>{r.name}</Text></Text>
+                      <Text style={{ fontSize: 15 }}>Amount: <Text style={{ fontWeight: 'bold', color: '#DC2626' }}>{r.amount}</Text></Text>
+                      <Text style={{ fontSize: 14, color: '#6B7280' }}>Date: <Text style={{ fontWeight: 'bold', color: '#1E40AF' }}>{r.reportedAt ? new Date(r.reportedAt).toLocaleString() : '-'}</Text></Text>
+                      <Text style={{ fontSize: 14, color: '#6B7280' }}>Reporter: <Text style={{ fontWeight: 'bold', color: '#1E40AF' }}>{userMap[r.reporter] || r.reporter}</Text></Text>
+                    </View>
+                  ))
+                )}
+              </ScrollView>
+              <TouchableOpacity
+                style={[styles.cancelButton, { marginTop: 16 }]}
+                onPress={() => setShowReportHistoryModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>Close</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </Modal>
@@ -733,7 +889,7 @@ const styles = StyleSheet.create({
   bankName: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1E40AF',
+    color: '#FF0303',
     marginLeft: 12,
   },
   accountInfo: {
