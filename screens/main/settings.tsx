@@ -122,6 +122,9 @@ const SettingsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.headerTitle}>Settings</Text>
+      </View>
       <View style={styles.section}>
         <TouchableOpacity style={styles.button} onPress={() => setShowPinModal(true)}>
           <Text style={styles.buttonText}>Set PIN</Text>
@@ -209,8 +212,21 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 16, fontSize: 16, color: '#6B7280' },
   section: { padding: 24 },
-  button: { backgroundColor: '#E0E7FF', borderRadius: 8, padding: 18, marginBottom: 18, alignItems: 'center' },
-  buttonText: { color: '#1E40AF', fontWeight: 'bold', fontSize: 18 },
+  sectionHeader: { 
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  button: { backgroundColor: '#FF0303', borderRadius: 8, padding: 18, marginBottom: 18, alignItems: 'center' },
+  buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 18 },
   modalContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
   modalContent: { backgroundColor: 'white', borderRadius: 16, padding: 24, width: '80%', maxWidth: 320 },
   modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#1F2937', marginBottom: 24, textAlign: 'center' },

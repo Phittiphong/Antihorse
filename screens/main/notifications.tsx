@@ -52,7 +52,9 @@ const NotificationsScreen: React.FC = () => {
     return (
       <View style={styles.notificationItem}>
         <Text style={styles.type}>{type}</Text>
-        <Text style={styles.amount}>{isSent ? '-' : '+'}{item.amount} ฿</Text>
+        <Text style={[styles.amount, { color: isSent ? '#DC2626' : '#16A34A' }]}>
+          {isSent ? '-' : '+'}{item.amount} ฿
+        </Text>
         <Text style={styles.detail}>From: {userNames[item.from] || item.from}</Text>
         <Text style={styles.detail}>To: {userNames[item.to] || item.to}</Text>
         <Text style={styles.detail}>Date: {new Date(item.timestamp).toLocaleString()}</Text>
@@ -60,6 +62,7 @@ const NotificationsScreen: React.FC = () => {
       </View>
     );
   };
+  
 
   return (
     <SafeAreaView style={styles.container}>
@@ -82,9 +85,9 @@ const NotificationsScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
-  header: { fontSize: 24, fontWeight: 'bold', color: '#1E40AF', textAlign: 'center', marginVertical: 24 },
+  header: { fontSize: 24, fontWeight: 'bold', color: '#000000', textAlign: 'center', marginVertical: 24 },
   notificationItem: { backgroundColor: '#fff', marginVertical: 8, padding: 16, borderRadius: 8, width: 340, alignSelf: 'center', elevation: 1 },
-  type: { fontWeight: 'bold', color: '#1E40AF', fontSize: 16 },
+  type: { fontWeight: 'bold', color: '#000000', fontSize: 16 },
   amount: { fontSize: 18, fontWeight: 'bold', marginVertical: 4 },
   detail: { color: '#6B7280', fontSize: 13 },
   status: { fontSize: 12, color: '#16A34A', marginTop: 2 },

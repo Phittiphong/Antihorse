@@ -437,9 +437,8 @@ const DepositScreen: React.FC<DepositScreenProps> = ({ onNavigateToTransfer, onN
         }
         scrollEnabled={!accountData || accountData.pin === '0000' || isPinVerified}
       >
-        <View style={styles.header}>
+        <View style={[styles.header, { justifyContent: 'center' }]}>
           <Text style={styles.headerTitle}>My Account</Text>
-          
         </View>
         <View style={styles.accountCard}>
           <View style={styles.cardHeader}>
@@ -515,6 +514,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#1F2937',
+    textAlign: 'center',
   },
   headerActions: {
     flexDirection: 'row',
@@ -745,6 +745,18 @@ const styles = StyleSheet.create({
   bankIcon: {
     fontSize: 32,
     marginRight: 12,
+  },
+  processingText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginTop: 20,
+  },
+  processingSubText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 8,
+    textAlign: 'center',
   },
 });
 

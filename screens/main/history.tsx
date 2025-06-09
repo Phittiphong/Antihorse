@@ -71,7 +71,12 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ onBack, onRepeatTransacti
       <Text style={styles.txType}>
         {item.from === firebase.auth().currentUser?.uid ? 'Sent' : 'Received'}
       </Text>
-      <Text style={styles.txAmount}>
+      <Text
+        style={[
+          styles.txAmount,
+          { color: item.from === firebase.auth().currentUser?.uid ? '#DC2626' : '#16A34A' }
+        ]}
+      >
         {item.from === firebase.auth().currentUser?.uid ? '-' : '+'}
         {item.amount} ฿
       </Text>
@@ -100,12 +105,13 @@ const HistoryScreen: React.FC<HistoryScreenProps> = ({ onBack, onRepeatTransacti
       )}
     </View>
   );
+  
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backText}>‹ Back</Text>
+      <TouchableOpacity onPress={onBack} style={styles.backButton}>
+          <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Transaction History</Text>
       </View>
@@ -131,12 +137,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
   header: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#fff', elevation: 2 },
   backButton: { marginRight: 16 },
-  backText: { fontSize: 18, color: '#1E40AF' },
-  title: { fontSize: 20, fontWeight: 'bold', color: '#1E40AF' },
+  backIcon: { fontSize: 18, color: '#FF0303' },
+  title: { fontSize: 20, fontWeight: 'bold', color: '#FF0303' },
   content: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   placeholder: { fontSize: 16, color: '#6B7280' },
   txItem: { backgroundColor: '#fff', marginVertical: 8, padding: 16, borderRadius: 8, width: 340, elevation: 1 },
-  txType: { fontWeight: 'bold', color: '#1E40AF' },
+  txType: { fontWeight: 'bold', color: '#000000' },
   txAmount: { fontSize: 18, fontWeight: 'bold', marginVertical: 4 },
   txNote: { color: '#6B7280' },
   txDate: { fontSize: 12, color: '#9CA3AF', marginTop: 4 },

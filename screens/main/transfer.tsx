@@ -229,12 +229,10 @@ const TransferScreen: React.FC<TransferScreenProps> = ({ onBackToDeposit, repeat
 
   const renderInputStep = () => (
     <>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBackToDeposit} style={styles.backButton}>
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
+      <View style={styles.headerContainer}>
+        <View style={styles.headerPlaceholder} />
         <Text style={styles.headerTitle}>Transfer Money</Text>
-        <View style={styles.placeholder} />
+        <View style={styles.headerPlaceholder} />
       </View>
 
       <View style={styles.formContainer}>
@@ -301,12 +299,12 @@ const TransferScreen: React.FC<TransferScreenProps> = ({ onBackToDeposit, repeat
 
     return (
       <>
-        <View style={styles.header}>
+        <View style={styles.headerContainer}>
           <TouchableOpacity onPress={() => setCurrentStep('input')} style={styles.backButton}>
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Review Transfer</Text>
-          <View style={styles.placeholder} />
+          <View style={styles.headerPlaceholder} />
         </View>
 
         <View style={styles.reviewContainer}>
@@ -362,13 +360,6 @@ const TransferScreen: React.FC<TransferScreenProps> = ({ onBackToDeposit, repeat
             onPress={executeTransfer}
           >
             <Text style={styles.confirmButtonText}>Confirm Transfer</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={() => setCurrentStep('input')}
-          >
-            <Text style={styles.cancelButtonText}>Back to Edit</Text>
           </TouchableOpacity>
         </View>
       </>
@@ -442,21 +433,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
   backButton: {
     padding: 8,
+    width: 40,
+    alignItems: 'center',
   },
   backIcon: {
     fontSize: 24,
-    color: '#1E40AF',
+    color: '#FF0303',
     fontWeight: 'bold',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#1F2937',
+    flex: 1,
+    textAlign: 'center',
   },
   placeholder: {
     width: 40,
+    height: 24,
+  },
+  headerPlaceholder: {
+    width: 40,
+    height: 24,
   },
   formContainer: {
     backgroundColor: 'white',
@@ -504,7 +510,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   proceedButton: {
-    backgroundColor: '#1E40AF',
+    backgroundColor: '#FF0303',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
