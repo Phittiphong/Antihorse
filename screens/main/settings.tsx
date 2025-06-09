@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Modal, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Modal, TextInput, Alert, ActivityIndicator, FlatList } from 'react-native';
 import firebase from '../../firebase';
 
 const SettingsScreen: React.FC = () => {
@@ -11,6 +11,13 @@ const SettingsScreen: React.FC = () => {
   const [isPinVerified, setIsPinVerified] = useState(false);
   const [loading, setLoading] = useState(true);
   const [accountData, setAccountData] = useState<any>(null);
+  const [showReportFraudModal, setShowReportFraudModal] = useState(false);
+  const [fraudAccNumber, setFraudAccNumber] = useState('');
+  const [fraudName, setFraudName] = useState('');
+  const [fraudAmount, setFraudAmount] = useState('');
+  const [showReportHistoryModal, setShowReportHistoryModal] = useState(false);
+  const [fraudReports, setFraudReports] = useState<any[]>([]);
+  const [userNames, setUserNames] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     const fetchAccountData = async () => {
@@ -109,6 +116,74 @@ const SettingsScreen: React.FC = () => {
     );
   };
 
+  const handleSubmitFraudReport = async () => {
+    if (!fraudAccNumber || !fraudName || !fraudAmount) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+    try {
+      const reportId = Date.now().toString();
+      const user = firebase.auth().currentUser;
+      await firebase.database().ref(`/fraud_reports/${reportId}`).set({
+        accnumber: fraudAccNumber,
+        name: fraudName,
+        amount: fraudAmount,
+        reportedAt: new Date().toISOString(),
+        reporter: user ? user.uid : 'anonymous',
+      });
+      setShowReportFraudModal(false);
+      setFraudAccNumber('');
+      setFraudName('');
+      setFraudAmount('');
+      Alert.alert('Success', 'Fraud report submitted!');
+    } catch (e) {
+      Alert.alert('Error', 'Failed to submit fraud report');
+    }
+  };
+
+  const loadFraudReports = async () => {
+    setLoading(true);
+    try {
+      const [reportsSnap, usersSnap] = await Promise.all([
+        firebase.database().ref('/fraud_reports').once('value'),
+        firebase.database().ref('/users').once('value'),
+      ]);
+      const reportsData = reportsSnap.val() || {};
+      const usersData = usersSnap.val() || {};
+
+      const names: { [key: string]: string } = {};
+      for (const uid in usersData) {
+        names[uid] = usersData[uid].name || 'Unknown User';
+      }
+      setUserNames(names);
+
+      const reportsList = Object.values(reportsData).sort((a: any, b: any) => (b.reportedAt || '').localeCompare(a.reportedAt || ''));
+      setFraudReports(reportsList);
+
+    } catch (e) {
+      setFraudReports([]);
+      setUserNames({});
+      Alert.alert('Error', 'Failed to load fraud reports.');
+    }
+    setLoading(false);
+  };
+
+  const handleViewReportHistory = () => {
+    setShowReportHistoryModal(true);
+    loadFraudReports();
+  };
+
+  const renderReportItem = ({ item }: { item: any }) => (
+    <View style={styles.reportItem}>
+      <Text style={styles.reportItemTitle}>Fraud Report</Text>
+      <Text style={styles.reportItemDetail}>Account Number: {item.accnumber}</Text>
+      <Text style={styles.reportItemDetail}>Name: {item.name}</Text>
+      <Text style={styles.reportItemDetail}>Amount: ฿{item.amount}</Text>
+      <Text style={styles.reportItemDetail}>Reported By: {userNames[item.reporter] || 'Unknown'}</Text>
+      <Text style={styles.reportItemDetail}>Date: {new Date(item.reportedAt).toLocaleString()}</Text>
+    </View>
+  );
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -131,6 +206,12 @@ const SettingsScreen: React.FC = () => {
         </TouchableOpacity>
         <TouchableOpacity style={styles.button} onPress={() => setShowChangePinModal(true)}>
           <Text style={styles.buttonText}>Change PIN</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={() => setShowReportFraudModal(true)}>
+          <Text style={styles.buttonText}>Report Fraud</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={handleViewReportHistory}>
+          <Text style={styles.buttonText}>Report History</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.button, { backgroundColor: '#DC2626' }]} onPress={handleLogout}>
           <Text style={[styles.buttonText, { color: 'white' }]}>Logout</Text>
@@ -203,6 +284,65 @@ const SettingsScreen: React.FC = () => {
           </View>
         </View>
       </Modal>
+      {/* Report Fraud Modal */}
+      <Modal visible={showReportFraudModal} animationType="slide" transparent>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <TouchableOpacity style={styles.closeButton} onPress={() => setShowReportFraudModal(false)}>
+              <Text style={styles.closeButtonText}>×</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Report Fraud</Text>
+            <TextInput
+              style={styles.pinInput}
+              placeholder="Fraud Account Number" 
+              value={fraudAccNumber}
+              onChangeText={setFraudAccNumber}
+              keyboardType="numeric"
+            />
+            <TextInput
+              style={styles.pinInput}
+              placeholder="Fraud Name" 
+              value={fraudName}
+              onChangeText={setFraudName}
+            />
+            <TextInput
+              style={styles.pinInput}
+              placeholder="Fraud Amount"
+              value={fraudAmount}
+              onChangeText={setFraudAmount}
+              keyboardType="numeric"
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.saveButton} onPress={handleSubmitFraudReport}>
+                <Text style={styles.saveButtonText}>Submit Report</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      {/* Report History Modal */}
+      <Modal visible={showReportHistoryModal} animationType="slide" transparent>
+        <View style={styles.modalContainer}>
+          <View style={[styles.modalContent, { width: '90%', maxWidth: 400, padding: 20 }]}>
+            <TouchableOpacity style={styles.closeButton} onPress={() => setShowReportHistoryModal(false)}>
+              <Text style={styles.closeButtonText}>×</Text>
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Fraud Report History</Text>
+            {loading ? (
+              <ActivityIndicator size="large" color="#1E40AF" style={{ marginVertical: 20 }} />
+            ) : fraudReports.length === 0 ? (
+              <Text style={styles.placeholderText}>No fraud reports yet.</Text>
+            ) : (
+              <FlatList
+                data={fraudReports}
+                keyExtractor={(_, index) => index.toString()}
+                renderItem={renderReportItem}
+                contentContainerStyle={{ paddingBottom: 20 }}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -236,6 +376,47 @@ const styles = StyleSheet.create({
   saveButtonText: { color: 'white', fontSize: 16, fontWeight: '600', textAlign: 'center' },
   cancelButton: { backgroundColor: '#6B7280', borderRadius: 8, paddingHorizontal: 24, paddingVertical: 12, flex: 1, marginLeft: 8 },
   cancelButtonText: { color: 'white', fontSize: 16, fontWeight: '600', textAlign: 'center' },
+  closeButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#DC2626',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  reportItem: {
+    backgroundColor: '#FDF2F2',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: '#DC2626',
+  },
+  reportItemTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#DC2626',
+    marginBottom: 5,
+  },
+  reportItemDetail: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 3,
+  },
+  placeholderText: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginTop: 20,
+  },
 });
 
 export default SettingsScreen;
